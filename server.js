@@ -63,42 +63,42 @@ async function verificarAlertas() {
     if (!ativo) continue;
 
     const precoAtual = ativo.regularMarketPrice;
-    const variacao = ativo.regularMarketChangePercent;
+    const precoAbertura = ativo.regularMarketOpen;
+    const variacaoDesdeAbertura = ((precoAtual - precoAbertura) / precoAbertura) * 100;
+    const variacaoDia = ativo.regularMarketChangePercent;
 
-    if (ultimasCotas[simbolo]) {
-      const variacaoDesdeUltima =
-        ((precoAtual - ultimasCotas[simbolo]) / ultimasCotas[simbolo]) * 100;
-
-      if (variacaoDesdeUltima <= -2) {
-        console.log(`🔔 ALERTA: ${simbolo} caiu ${Math.abs(variacaoDesdeUltima).toFixed(2)}%`);
-        await dispararNotificacao(
-          `📉 ${simbolo} está caindo!`,
-          `Queda de ${Math.abs(variacaoDesdeUltima).toFixed(2)}% agora. Toque para ver o motivo →`,
-          { simbolo, tipo: 'QUEDA', preco: String(precoAtual) }
-        );
-      }
-
-      if (variacaoDesdeUltima >= 2) {
-        console.log(`🔔 ALERTA: ${simbolo} subiu ${variacaoDesdeUltima.toFixed(2)}%`);
-        await dispararNotificacao(
-          `📈 ${simbolo} está subindo!`,
-          `Alta de ${variacaoDesdeUltima.toFixed(2)}% agora. Toque para aproveitar →`,
-          { simbolo, tipo: 'ALTA', preco: String(precoAtual) }
-        );
-      }
+    // Alerta de queda desde abertura (mais de 2%)
+    if (variacaoDesdeAbertura <= -2) {
+      console.log(`🔔 ALERTA: ${simbolo} caiu ${Math.abs(variacaoDesdeAbertura).toFixed(2)}% desde abertura`);
+      await dispararNotificacao(
+        `📉 ${simbolo} está caindo!`,
+        `Queda de ${Math.abs(variacaoDesdeAbertura).toFixed(2)}% desde a abertura. Toque para ver o motivo →`,
+        { simbolo, tipo: 'QUEDA', preco: String(precoAtual) }
+      );
     }
 
-    if (Math.abs(variacao) >= 3) {
-      console.log(`🔔 ALERTA DIA: ${simbolo} variou ${variacao.toFixed(2)}% hoje`);
+    // Alerta de alta desde abertura (mais de 2%)
+    if (variacaoDesdeAbertura >= 2) {
+      console.log(`🔔 ALERTA: ${simbolo} subiu ${variacaoDesdeAbertura.toFixed(2)}% desde abertura`);
       await dispararNotificacao(
-        variacao > 0 ? `📈 ${simbolo} em alta hoje!` : `📉 ${simbolo} em queda hoje!`,
-        `${variacao > 0 ? 'Subiu' : 'Caiu'} ${Math.abs(variacao).toFixed(2)}% hoje. Acompanhe no app →`,
-        { simbolo, tipo: variacao > 0 ? 'ALTA_DIA' : 'QUEDA_DIA', preco: String(precoAtual) }
+        `📈 ${simbolo} está subindo!`,
+        `Alta de ${variacaoDesdeAbertura.toFixed(2)}% desde a abertura. Toque para aproveitar →`,
+        { simbolo, tipo: 'ALTA', preco: String(precoAtual) }
+      );
+    }
+
+    // Alerta de variação do dia (mais de 3%)
+    if (Math.abs(variacaoDia) >= 3) {
+      console.log(`🔔 ALERTA DIA: ${simbolo} variou ${variacaoDia.toFixed(2)}% hoje`);
+      await dispararNotificacao(
+        variacaoDia > 0 ? `📈 ${simbolo} em alta hoje!` : `📉 ${simbolo} em queda hoje!`,
+        `${variacaoDia > 0 ? 'Subiu' : 'Caiu'} ${Math.abs(variacaoDia).toFixed(2)}% hoje. Acompanhe no app →`,
+        { simbolo, tipo: variacaoDia > 0 ? 'ALTA_DIA' : 'QUEDA_DIA', preco: String(precoAtual) }
       );
     }
 
     ultimasCotas[simbolo] = precoAtual;
-    console.log(`  ${simbolo}: R$ ${precoAtual} (${variacao > 0 ? '+' : ''}${variacao?.toFixed(2)}%)`);
+    console.log(`  ${simbolo}: R$ ${precoAtual} (abertura: R$ ${precoAbertura}) ${variacaoDesdeAbertura > 0 ? '+' : ''}${variacaoDesdeAbertura.toFixed(2)}%`);
   }
 }
 
