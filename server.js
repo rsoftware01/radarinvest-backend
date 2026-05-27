@@ -113,7 +113,7 @@ app.post('/registrar-token', (req, res) => {
 });
 
 // Roda a cada 20 minutos no horário do mercado
-cron.schedule('*/20 * * * *', () => {
+cron.schedule('*/5 * * * *', () => {
   const agora = new Date();
   const hora = agora.getHours();
   const minuto = agora.getMinutes();
@@ -128,6 +128,60 @@ cron.schedule('*/20 * * * *', () => {
   } else {
     console.log(`[${agora.toLocaleTimeString('pt-BR')}] Mercado fechado — aguardando...`);
   }
+});
+
+// Alerta de abertura do mercado - roda às 10h05 de dias úteis
+cron.schedule('5 10 * * 1-5', async () => {
+  console.log('\n🔔 Enviando resumo de abertura do mercado...');
+
+  const ativos = ['PETR4', 'VALE3', 'ITUB4', 'IBOV'];
+  const resultados = [];
+
+  for (const simbolo of ['PETR4', 'VALE3', 'ITUB4']) {
+    const ativo = await buscarCotacao(simbolo);
+    if (ativo) {
+      const variacao = ativo.regularMarketChangePercent;
+      resultados.push(`${simbolo}: ${variacao > 0 ? '+' : ''}${variacao?.toFixed(2)}%`);
+    }
+  }
+
+  const ibov = await buscarCotacao('^BVSP');
+  const variacaoIbov = ibov?.regularMarketChangePercent;
+  const tendencia = variacaoIbov >= 0 ? 'em alta' : 'em queda';
+
+  await dispararNotificacao(
+    `🔔 Mercado abriu ${tendencia}!`,
+    `Ibovespa ${variacaoIbov > 0 ? '+' : ''}${variacaoIbov?.toFixed(2)}% | ${resultados.join(' | ')} → Veja os destaques`,
+    { tipo: 'ABERTURA' }
+  );
+
+  console.log('✅ Resumo de abertura enviado!');
+});
+
+// Alerta de fechamento do mercado - roda às 17h05 de dias úteis
+cron.schedule('5 17 * * 1-5', async () => {
+  console.log('\n🔔 Enviando resumo de fechamento do mercado...');
+
+  const resultados = [];
+  for (const simbolo of ['PETR4', 'VALE3', 'ITUB4']) {
+    const ativo = await buscarCotacao(simbolo);
+    if (ativo) {
+      const variacao = ativo.regularMarketChangePercent;
+      resultados.push(`${simbolo}: ${variacao > 0 ? '+' : ''}${variacao?.toFixed(2)}%`);
+    }
+  }
+
+  const ibov = await buscarCotacao('^BVSP');
+  const variacaoIbov = ibov?.regularMarketChangePercent;
+  const tendencia = variacaoIbov >= 0 ? 'positivo' : 'negativo';
+
+  await dispararNotificacao(
+    `📊 Mercado fechou ${tendencia}!`,
+    `Ibovespa ${variacaoIbov > 0 ? '+' : ''}${variacaoIbov?.toFixed(2)}% | ${resultados.join(' | ')} → Veja o resumo do dia`,
+    { tipo: 'FECHAMENTO' }
+  );
+
+  console.log('✅ Resumo de fechamento enviado!');
 });
 
 verificarAlertas();
