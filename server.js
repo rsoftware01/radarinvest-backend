@@ -127,17 +127,28 @@ async function verificarAlertas() {
 
 app.post('/registrar-token', async (req, res) => {
   const { token } = req.body;
-  if (!token) return res.json({ sucesso: false });
+  if (!token) return res.json({ sucesso: false, erro: 'token vazio' });
+  
+  console.log('📱 Tentando salvar token:', token.slice(0, 30) + '...');
+  
   try {
-    await supabase.from('device_tokens').upsert({ token });
+    const { data, error } = await supabase.from('device_tokens').upsert({ token }).select();
+    
+    if (error) {
+      console.log('❌ Erro Supabase:', error.message);
+      return res.json({ sucesso: false, erro: error.message });
+    }
+    
+    console.log('✅ Token salvo no Supabase!', data);
+    
     if (!deviceTokens.includes(token)) {
       deviceTokens.push(token);
-      console.log(`📱 Novo dispositivo! Total: ${deviceTokens.length}`);
     }
+    
     res.json({ sucesso: true, total_dispositivos: deviceTokens.length });
   } catch (e) {
-    console.error('Erro:', e.message);
-    res.json({ sucesso: false });
+    console.error('❌ Erro:', e.message);
+    res.json({ sucesso: false, erro: e.message });
   }
 });
 
