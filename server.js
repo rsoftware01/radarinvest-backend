@@ -13,6 +13,13 @@ app.use(express.json());
 
 const TOKEN_BRAPI = 'fatF4aWydvJh8HBqoD6WfN';
 
+const { createClient } = require('@supabase/supabase-js');
+
+const supabase = createClient(
+  'https://toxfcffhboltszvsldiu.supabase.co',
+  'sb_publishable_h8fQkwR8g7G2FROjA8l_kQ_njtGVo1d'
+);
+
 const ATIVOS_MONITORADOS = [
   'PETR4', 'VALE3', 'ITUB4', 'BBDC4', 'ABEV3',
   'WEGE3', 'RENT3', 'MGLU3', 'HGLG11', 'XPML11'
@@ -22,6 +29,16 @@ let ultimasCotas = {};
 
 // Tokens dos dispositivos dos usuários (depois vem do banco de dados)
 let deviceTokens = [];
+
+async function carregarTokens() {
+  try {
+    const { data } = await supabase.from('device_tokens').select('token');
+    deviceTokens = data?.map(d => d.token) || [];
+    console.log(`📱 ${deviceTokens.length} tokens carregados do banco`);
+  } catch (e) {
+    console.error('Erro ao carregar tokens:', e.message);
+  }
+}
 
 async function buscarCotacao(simbolo) {
   try {
@@ -103,13 +120,21 @@ async function verificarAlertas() {
 }
 
 // Rota pra registrar token do dispositivo
-app.post('/registrar-token', (req, res) => {
+app.post('/registrar-token', async (req, res) => {
   const { token } = req.body;
-  if (token && !deviceTokens.includes(token)) {
-    deviceTokens.push(token);
-    console.log(`📱 Novo dispositivo registrado! Total: ${deviceTokens.length}`);
+  if (!token) return res.json({ sucesso: false });
+
+  try {
+    await supabase.from('device_tokens').upsert({ token });
+    if (!deviceTokens.includes(token)) {
+      deviceTokens.push(token);
+      console.log(`📱 Novo dispositivo registrado! Total: ${deviceTokens.length}`);
+    }
+    res.json({ sucesso: true, total_dispositivos: deviceTokens.length });
+  } catch (e) {
+    console.error('Erro ao registrar token:', e.message);
+    res.json({ sucesso: false });
   }
-  res.json({ sucesso: true, total_dispositivos: deviceTokens.length });
 });
 
 // Roda a cada 20 minutos no horário do mercado
@@ -251,6 +276,17 @@ app.post('/boas-vindas', async (req, res) => {
     res.json({ sucesso: false });
   }
 });
+
+app.post('/testar-notificacao', async (req, res) => {
+  await dispararNotificacao(
+    '🔔 Teste RadarInvest!',
+    'Se você recebeu isso, as notificações estão funcionando! 🚀',
+    { tipo: 'TESTE' }
+  );
+  res.json({ sucesso: true, dispositivos: deviceTokens.length });
+});
+
+carregarTokens();
 
 
 app.listen(3000, () => {
