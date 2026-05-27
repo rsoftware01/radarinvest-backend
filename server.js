@@ -203,6 +203,28 @@ setInterval(async () => {
   } catch (e) {}
 }, 10 * 60 * 1000);
 
+app.post('/boas-vindas', async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.json({ sucesso: false });
+
+  try {
+    await admin.messaging().send({
+      token,
+      notification: {
+        title: '👋 Bem-vindo ao RadarInvest!',
+        body: 'Todas as informações do mercado na palma da sua mão. Fique sempre à frente! 📊',
+      },
+      data: { tipo: 'BOAS_VINDAS' }
+    });
+    console.log('✅ Boas vindas enviadas!');
+    res.json({ sucesso: true });
+  } catch (e) {
+    console.error('Erro:', e.message);
+    res.json({ sucesso: false });
+  }
+});
+
+
 app.listen(3000, () => {
   console.log('🚀 Motor de alertas RadarInvest rodando na porta 3000');
   console.log(`📊 Monitorando ${ATIVOS_MONITORADOS.length} ativos`);
