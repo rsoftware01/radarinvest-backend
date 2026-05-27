@@ -142,6 +142,13 @@ app.get('/status', (req, res) => {
   });
 });
 
+setInterval(async () => {
+  try {
+    await axios.get('https://radarinvest-backend.onrender.com/status');
+    console.log('💓 Servidor ativo');
+  } catch (e) {}
+}, 10 * 60 * 1000);
+
 app.listen(3000, () => {
   console.log('🚀 Motor de alertas RadarInvest rodando na porta 3000');
   console.log(`📊 Monitorando ${ATIVOS_MONITORADOS.length} ativos`);
