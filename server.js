@@ -53,10 +53,42 @@ async function buscarCotacao(simbolo) {
 }
 
 async function dispararNotificacao(titulo, corpo, dados = {}) {
-  if (deviceTokens.length === 0) {
-    console.log('📵 Nenhum dispositivo registrado ainda');
-    return;
+  try {
+    const { data: tokensData } = await supabase.from('device_tokens').select('token');
+    const tokens = tokensData?.map(d => d.token) || [];
+
+    if (tokens.length === 0) {
+      console.log('📵 Nenhum dispositivo registrado');
+      return;
+    }
+
+    console.log(`📤 Enviando pra ${tokens.length} dispositivos...`);
+
+    const messages = tokens.map(token => ({
+      to: token,
+      title: titulo,
+      body: corpo,
+      data: dados,
+      sound: 'default',
+      priority: 'high',
+    }));
+
+    const response = await axios.post(
+      'https://exp.host/--/api/v2/push/send',
+      messages,
+      {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        }
+      }
+    );
+
+    console.log(`✅ Notificação enviada!`, response.data);
+  } catch (e) {
+    console.error('Erro ao enviar notificação:', e.message);
   }
+}
 
   try {
     const mensagem = {
