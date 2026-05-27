@@ -184,6 +184,34 @@ cron.schedule('5 17 * * 1-5', async () => {
   console.log('✅ Resumo de fechamento enviado!');
 });
 
+// Alerta de hora em hora durante o pregão
+cron.schedule('0 11,12,13,14,15,16 * * 1-5', async () => {
+  console.log('\n🕐 Enviando resumo de hora em hora...');
+
+  const ibov = await buscarCotacao('^BVSP');
+  if (!ibov) return;
+
+  const variacao = ibov.regularMarketChangePercent;
+  const preco = ibov.regularMarketPrice?.toLocaleString('pt-BR');
+  const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+  if (Math.abs(variacao) < 0.5) {
+    console.log('Mercado flat, pulando alerta de hora...');
+    return;
+  }
+
+  const tendencia = variacao >= 0 ? 'acima' : 'abaixo';
+  const emoji = variacao >= 0 ? '📈' : '📉';
+
+  await dispararNotificacao(
+    `${emoji} Ibovespa agora — ${hora}`,
+    `${preco} pts • ${variacao > 0 ? '+' : ''}${variacao?.toFixed(2)}% ${tendencia} da abertura → Veja os destaques`,
+    { tipo: 'HORA_EM_HORA', simbolo: 'IBOV' }
+  );
+
+  console.log(`✅ Alerta de hora enviado! Ibovespa: ${preco} pts`);
+});
+
 verificarAlertas();
 
 app.get('/status', (req, res) => {
