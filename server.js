@@ -68,7 +68,17 @@ async function dispararNotificacao(titulo, corpo, dados = {}) {
       { headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' } }
     );
 
-    console.log(`✅ Notificação enviada!`, JSON.stringify(response.data));
+    const resultado = response.data;
+      console.log(`✅ Resposta Expo:`, JSON.stringify(resultado));
+      if (resultado.data) {
+        resultado.data.forEach(item => {
+          if (item.status === 'error') {
+            console.log(`❌ Erro no token: ${item.message} - ${item.details}`);
+          } else {
+            console.log(`✅ Enviado com sucesso! Receipt: ${item.id}`);
+          }
+        });
+      }
   } catch (e) {
     console.error('Erro ao enviar notificação:', e.message);
   }
